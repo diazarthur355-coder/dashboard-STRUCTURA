@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Structura — Command Center</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+:root {
+  --bg: #0a0e1a; --bg2: #0f1525; --bg3: #151d2e; --bg4: #1e293b;
+  --glass: rgba(15,21,37,0.75); --glass-border: rgba(255,255,255,0.06);
+  --accent: #5865f2; --accent2: #4752c4; --accent-glow: rgba(88,101,242,0.35);
+  --green: #3ba55d; --green-glow: rgba(59,165,93,0.3);
+  --red: #ed4245; --red-glow: rgba(237,66,69,0.3);
+  --orange: #f26522; --yellow: #faa81a; --cyan: #00d4aa;
+  --text: #f3f4f6; --text2: #9ca3af; --text3: #6b7280;
+  --font: 'Inter',system-ui,sans-serif; --font-mono: 'JetBrains Mono',monospace;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: var(--bg); color: var(--text); font-family: var(--font);
+  height: 100vh; overflow: hidden; display: flex;
+}
+body::before {
+  content: ''; position: fixed; inset: 0;
+  background: radial-gradient(ellipse 80% 50% at 20% 40%, rgba(88,101,242,0.12), transparent),
+              radial-gradient(ellipse 60% 40% at 80% 60%, rgba(237,66,69,0.08), transparent);
+  pointer-events: none; z-index: 0;
+}
+.sidebar {
+  width: 260px; background: var(--glass); backdrop-filter: blur(20px);
+  border-right: 1px solid var(--glass-border); display: flex; flex-direction: column;
+  z-index: 10; position: relative;
+}
+.brand { padding: 24px; border-bottom: 1px solid var(--glass-border); }
+.brand h1 { font-size: 20px; font-weight: 800; display: flex; align-items: center; gap: 10px; letter-spacing: -0.5px; }
+.brand h1 span { color: var(--accent); }
+.brand p { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
+.server-info {
+  padding: 16px 20px; margin: 12px;
+  background: linear-gradient(135deg, rgba(88,101,242,0.15), rgba(88,101,242,0.05));
+  border: 1px solid rgba(88,101,242,0.2); border-radius: 12px;
+}
+.server-info .name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.server-info .id { font-family: var(--font-mono); font-size: 10px; color: var(--text3); margin-top: 4px; }
+.nav { flex: 1; padding: 12px; overflow-y: auto; }
+.nav-label { font-size: 10px; text-transform: uppercase; color: var(--text3); letter-spacing: 1.5px; padding: 16px 12px 8px; font-weight: 700; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px; margin: 2px 0;
+  border-radius: 10px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text2);
+  transition: all 0.2s; border: 1px solid transparent;
+}
+.nav-item:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+.nav-item.active {
+  background: linear-gradient(135deg, rgba(88,101,242,0.2), rgba(88,101,242,0.05));
+  color: var(--text); border-color: rgba(88,101,242,0.3); box-shadow: 0 0 20px rgba(88,101,242,0.1);
+}
+.nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+.hook-status {
+  margin: 12px; padding: 10px 14px; border-radius: 10px; font-size: 11px; font-weight: 600;
+  display: flex; align-items: center; gap: 8px;
+}
+.hook-status.ok { background: rgba(59,165,93,0.1); color: var(--green); border: 1px solid rgba(59,165,93,0.2); }
+.hook-status.err { background: rgba(237,66,69,0.1); color: var(--red); border: 1px solid rgba(237,66,69,0.2); }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+.main { flex: 1; display: flex; flex-direction: column; z-index: 10; position: relative; overflow: hidden; }
+.topbar {
+  height: 64px; background: var(--glass); backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border); display: flex;
+  align-items: center; justify-content: space-between; padding: 0 28px;
+}
+.topbar h2 { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+.topbar-actions { display: flex; gap: 10px; }
+.btn {
+  padding: 8px 16px; border-radius: 8px; border: none; font-family: var(--font);
+  font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: var(--accent); color: white; box-shadow: 0 4px 20px var(--accent-glow); }
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 30px var(--accent-glow); }
+.btn-danger { background: var(--red); color: white; box-shadow: 0 4px 20px var(--red-glow); }
+.btn-danger:hover { transform: translateY(-1px); }
+.btn-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--glass-border); }
+.btn-secondary:hover { background: var(--bg4); }
+.btn-sm { padding: 6px 12px; font-size: 11px; }
+.content { flex: 1; overflow-y: auto; padding: 28px; }
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 24px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; margin-bottom: 24px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+@media(max-width:1200px){ .grid-4{grid-template-columns:repeat(2,1fr)} }
+@media(max-width:800px){ .grid-4,.grid-3,.grid-2{grid-template-columns:1fr} .sidebar{display:none} }
+.stat-card {
+  background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border);
+  border-radius: 16px; padding: 20px; position: relative; overflow: hidden; transition: 0.3s;
+}
+.stat-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.1); }
+.stat-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), transparent); opacity: 0.5; }
+.stat-card.green::before { background: linear-gradient(90deg, var(--green), transparent); }
+.stat-card.red::before { background: linear-gradient(90deg, var(--red), transparent); }
+.stat-card.orange::before { background: linear-gradient(90deg, var(--orange), transparent); }
+.stat-card.cyan::before { background: linear-gradient(90deg, var(--cyan), transparent); }
+.stat-label { font-size: 11px; text-transform: uppercase; color: var(--text3); letter-spacing: 1px; font-weight: 700; }
+.stat-value { font-size: 32px; font-weight: 800; margin-top: 8px; letter-spacing: -1px; }
+.stat-card.green .stat-value { color: var(--green); }
+.stat-card.red .stat-value { color: var(--red); }
+.stat-card.orange .stat-value { color: var(--orange); }
+.stat-card.cyan .stat-value { color: var(--cyan); }
+.panel {
+  background: var(--glass); backdrop-filter: blur(10px); border: 1px solid var(--glass-border);
+  border-radius: 16px; overflow: hidden; margin-bottom: 24px;
+}
+.panel-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--glass-border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.panel-header h3 { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text2); }
+.panel-body { padding: 24px; }
+.cat-block { margin-bottom: 16px; border-radius: 12px; overflow: hidden; border: 1px solid var(--glass-border); background: rgba(255,255,255,0.02); }
+.cat-header {
+  padding: 14px 18px; background: linear-gradient(90deg, rgba(88,101,242,0.1), transparent);
+  display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; transition: 0.2s;
+}
+.cat-header:hover { background: linear-gradient(90deg, rgba(88,101,242,0.15), transparent); }
+.cat-header .arrow { transition: 0.2s; font-size: 12px; color: var(--text3); }
+.cat-header.collapsed .arrow { transform: rotate(-90deg); }
+.cat-name { font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.cat-count { font-size: 11px; color: var(--text3); font-weight: 600; }
+.channel-list { padding: 6px; }
+.ch-item {
+  display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+  margin: 4px; border-radius: 8px; cursor: pointer; transition: 0.15s; font-size: 13px;
+}
+.ch-item:hover { background: rgba(255,255,255,0.04); }
+.ch-item.selected { background: rgba(88,101,242,0.12); border: 1px solid rgba(88,101,242,0.3); }
+.ch-left { display: flex; align-items: center; gap: 10px; }
+.ch-icon { font-size: 16px; width: 20px; text-align: center; }
+.ch-name { font-weight: 500; }
+.ch-type { font-size: 10px; text-transform: uppercase; color: var(--text3); background: var(--bg3); padding: 2px 8px; border-radius: 20px; font-weight: 700; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 11px; text-transform: uppercase; color: var(--text3); font-weight: 700; margin-bottom: 6px; letter-spacing: 0.5px; }
+input, select, textarea {
+  width: 100%; padding: 10px 14px; background: var(--bg2); border: 1px solid var(--glass-border);
+  border-radius: 10px; color: var(--text); font-family: var(--font); font-size: 13px; outline: none; transition: 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+input::placeholder { color: var(--text3); }
+.mod-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px,1fr)); gap: 16px; }
+.mod-card { background: rgba(255,255,255,0.02); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px; transition: 0.2s; }
+.mod-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+.mod-card h4 { font-size: 12px; text-transform: uppercase; color: var(--text3); margin-bottom: 12px; letter-spacing: 1px; }
+.mod-action { display: flex; flex-direction: column; gap: 8px; }
+.mod-action-btn {
+  padding: 10px; border-radius: 8px; border: none; color: white; font-family: var(--font);
+  font-size: 12px; font-weight: 700; cursor: pointer; transition: 0.2s;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.mod-action-btn:hover { transform: scale(1.02); opacity: 0.95; }
+.btn-warn { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.btn-mute { background: linear-gradient(135deg, #6b7280, #4b5563); }
+.btn-kick { background: linear-gradient(135deg, #f97316, #ea580c); }
+.btn-ban { background: linear-gradient(135deg, #ef4444, #dc2626); box-shadow: 0 4px 20px var(--red-glow); }
+.btn-lock { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+.btn-clear { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.btn-slow { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+.perm-section { margin-bottom: 24px; }
+.perm-section h4 { font-size: 13px; margin-bottom: 12px; color: var(--text2); }
+.perm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 10px; }
+.perm-item {
+  display: flex; align-items: center; justify-content: space-between; padding: 10px 14px;
+  background: var(--bg2); border: 1px solid var(--glass-border); border-radius: 10px;
+  cursor: pointer; transition: 0.2s; font-size: 12px;
+}
+.perm-item:hover { border-color: rgba(255,255,255,0.1); }
+.perm-item.active { background: rgba(88,101,242,0.1); border-color: var(--accent); }
+.perm-toggle { width: 36px; height: 20px; background: var(--bg3); border-radius: 10px; position: relative; transition: 0.2s; }
+.perm-toggle::after { content: ''; position: absolute; width: 16px; height: 16px; background: var(--text3); border-radius: 50%; top: 2px; left: 2px; transition: 0.2s; }
+.perm-item.active .perm-toggle { background: var(--accent); }
+.perm-item.active .perm-toggle::after { left: 18px; background: white; }
+.log-entry {
+  display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 10px;
+  margin-bottom: 8px; font-size: 12px; background: rgba(255,255,255,0.02);
+  border-left: 3px solid var(--accent); animation: slideIn 0.3s ease;
+}
+.log-entry.warn { border-left-color: var(--yellow); }
+.log-entry.mute { border-left-color: var(--text3); }
+.log-entry.kick { border-left-color: var(--orange); }
+.log-entry.ban { border-left-color: var(--red); }
+.log-time { font-family: var(--font-mono); color: var(--text3); font-size: 11px; min-width: 40px; }
+.log-action { font-weight: 700; text-transform: uppercase; min-width: 60px; }
+.log-target { color: var(--accent); font-weight: 600; }
+.log-reason { color: var(--text3); font-style: italic; }
+@keyframes slideIn { from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:translateX(0)} }
+.toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; }
+.toast {
+  padding: 14px 20px; border-radius: 12px; color: white; font-weight: 600; font-size: 13px;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.4); transform: translateX(120%);
+  transition: 0.4s cubic-bezier(0.175,0.885,0.32,1.275); display: flex; align-items: center; gap: 10px;
+  min-width: 280px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);
+}
+.toast.show { transform: translateX(0); }
+.toast.success { background: rgba(59,165,93,0.9); }
+.toast.error { background: rgba(237,66,69,0.9); }
+.toast.info { background: rgba(88,101,242,0.9); }
+.tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg2); padding: 4px; border-radius: 10px; width: fit-content; }
+.tab { padding: 8px 16px; border-radius: 8px; border: none; background: transparent; color: var(--text3); font-family: var(--font); font-size: 12px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--bg3); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+.tab-content { display: none; }
+.tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bg4); }
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 16px; }
+.flex { display: flex; }
+.gap-2 { gap: 8px; }
+.gap-4 { gap: 16px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.w-full { width: 100%; }
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+.badge-red { background: rgba(237,66,69,0.15); color: var(--red); }
+.badge-green { background: rgba(59,165,93,0.15); color: var(--green); }
+.badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+.raid-panel {
+  background: linear-gradient(135deg, rgba(237,66,69,0.08), rgba(245,158,11,0.08));
+  border: 1px solid rgba(237,66,69,0.2); border-radius: 12px; padding: 20px;
+}
+.raid-title { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: var(--red); margin-bottom: 12px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="brand">
+    <h1>🛡️ <span>Structura</span></h1>
+    <p>Command Center</p>
+  </div>
+  <div class="server-info">
+    <div class="name" id="srvName">Chargement...</div>
+    <div class="id" id="srvId">ID: —</div>
+  </div>
+  <div class="nav">
+    <div class="nav-label">Navigation</div>
+    <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="icon">📊</span> Dashboard</div>
+    <div class="nav-item" onclick="showPage('moderation',this)"><span class="icon">🛡️</span> Modération</div>
+    <div class="nav-item" onclick="showPage('permissions',this)"><span class="icon">🔐</span> Permissions</div>
+    <div class="nav-item" onclick="showPage('logs',this)"><span class="icon">📜</span> Logs</div>
+    <div class="nav-item" onclick="showPage('security',this)"><span class="icon">🔒</span> Sécurité</div>
+    <div class="nav-label">Outils</div>
+    <div class="nav-item" onclick="showPage('messages',this)"><span class="icon">💬</span> Messages</div>
+    <div class="nav-item" onclick="showPage('settings',this)"><span class="icon">⚙️</span> Paramètres</div>
+  </div>
+  <div class="hook-status err" id="hookStatus"><span class="pulse-dot"></span><span id="hookText">Webhook déconnecté</span></div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="pageTitle">📊 Dashboard</h2>
+    <div class="topbar-actions">
+      <button class="btn btn-secondary btn-sm" onclick="testWebhook()">🔄 Tester</button>
+      <button class="btn btn-primary btn-sm" onclick="sendPing()">📡 Ping</button>
+    </div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard" class="tab-content active">
+      <div class="grid-4">
+        <div class="stat-card green"><div class="stat-label">Membres</div><div class="stat-value" id="statMembers">0</div></div>
+        <div class="stat-card cyan"><div class="stat-label">Salons</div><div class="stat-value" id="statChannels">0</div></div>
+        <div class="stat-card orange"><div class="stat-label">Catégories</div><div class="stat-value" id="statCategories">0</div></div>
+        <div class="stat-card red"><div class="stat-label">Actions</div><div class="stat-value" id="statActions">0</div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><h3>📁 Structure du serveur</h3><button class="btn btn-secondary btn-sm" onclick="expandAll()">📂 Tout déplier</button></div>
+        <div class="panel-body" id="structureContainer"><div class="text-center" style="color:var(--text3);padding:40px;">Aucune donnée reçue du bot</div></div>
+      </div>
+    </div>
+
+    <!-- MODERATION -->
+    <div id="page-moderation" class="tab-content">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('mod-sanctions',this)">Sanctions</button>
+        <button class="tab" onclick="switchTab('mod-actions',this)">Actions Rapides</button>
+        <button class="tab" onclick="switchTab('mod-prison',this)">Prison & Lockdown</button>
+      </div>
+      <div id="mod-sanctions" class="tab-content active">
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-header"><h3>⚠️ Avertissement</h3></div>
+            <div class="panel-body">
+              <div class="form-group"><label>Utilisateur</label><input type="text" id="warnTarget" placeholder="@Pseudo ou ID"></div>
+              <div class="form-group"><label>Raison</label><textarea id="warnReason" rows="2" placeholder="Raison de l'avertissement"></textarea></div>
+              <button class="btn btn-warn w-full" onclick="sendMod('warn')">⚠️ AVERTIR</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>🔇 Mute</h3></div>
+            <div class="panel-body">
+              <div class="form-group"><label>Utilisateur</label><input type="text" id="muteTarget" placeholder="@Pseudo ou ID"></div>
+              <div class="form-group"><label>Durée</label><select id="muteDuration"><option value="5m">5 minutes</option><option value="1h">1 heure</option><option value="1d">1 jour</option><option value="perm">Permanent</option></select></div>
+              <div class="form-group"><label>Raison</label><textarea id="muteReason" rows="2" placeholder="Raison du mute"></textarea></div>
+              <button class="btn btn-mute w-full" onclick="sendMod('mute')">🔇 MUTE</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>👢 Expulsion</h3></div>
+            <div class="panel-body">
+              <div class="form-group"><label>Utilisateur</label><input type="text" id="kickTarget" placeholder="@Pseudo ou ID"></div>
+              <div class="form-group"><label>Raison</label><textarea id="kickReason" rows="2" placeholder="Raison de l'expulsion"></textarea></div>
+              <button class="btn btn-kick w-full" onclick="sendMod('kick')">👢 KICK</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>🔨 Bannissement</h3></div>
+            <div class="panel-body">
+              <div class="form-group"><label>Utilisateur</label><input type="text" id="banTarget" placeholder="@Pseudo ou ID"></div>
+              <div class="form-group"><label>Supprimer les messages</label><select id="banDelete"><option value="0">Aucun</option><option value="1">1 jour</option><option value="7">7 jours</option></select></div>
+              <div class="form-group"><label>Raison</label><textarea id="banReason" rows="2" placeholder="Raison du bannissement"></textarea></div>
+              <button class="btn btn-ban w-full" onclick="sendMod('ban')">🔨 BAN</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="mod-actions" class="tab-content">
+        <div class="mod-grid">
+          <div class="mod-card"><h4>🧹 Messages</h4><div class="mod-action">
+            <input type="number" placeholder="Nombre (1-100)" min="1" max="100" style="margin-bottom:8px;">
+            <button class="mod-action-btn btn-clear">🧹 CLEAR</button>
+          </div></div>
+          <div class="mod-card"><h4>🐌 Slowmode</h4><div class="mod-action">
+            <select style="margin-bottom:8px;"><option value="off">Désactivé</option><option value="5">5 sec</option><option value="30">30 sec</option><option value="120">2 min</option></select>
+            <button class="mod-action-btn btn-slow">🐌 SLOWMODE</button>
+          </div></div>
+          <div class="mod-card"><h4>🔒 Verrouillage</h4><div class="mod-action">
+            <button class="mod-action-btn btn-lock" style="margin-bottom:8px;">🔒 LOCK</button>
+            <button class="mod-action-btn btn-lock">🔓 UNLOCK</button>
+          </div></div>
+          <div class="mod-card"><h4>📢 Annonces</h4><div class="mod-action">
+            <textarea placeholder="Message d'annonce..." rows="2" style="margin-bottom:8px;"></textarea>
+            <button class="mod-action-btn" style="background:var(--accent);">📢 ENVOYER</button>
+          </div></div>
+        </div>
+      </div>
+      <div id="mod-prison" class="tab-content">
+        <div class="grid-2">
+          <div class="panel">
+            <div class="panel-header"><h3>🚔 Prison</h3></div>
+            <div class="panel-body">
+              <div class="form-group"><label>Utilisateur</label><input type="text" id="prisonTarget" placeholder="@Pseudo ou ID"></div>
+              <div class="form-group"><label>Raison</label><textarea id="prisonReason" rows="2" placeholder="Raison de la prison"></textarea></div>
+              <button class="btn btn-ban w-full" onclick="sendMod('prison')">🚔 PRISON</button>
+              <button class="btn btn-secondary w-full mt-2" onclick="sendMod('unprison')">↩️ LIBÉRER</button>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-header"><h3>🔐 Lockdown</h3></div>
+            <div class="panel-body">
+              <p style="color:var(--text3);font-size:12px;margin-bottom:16px;">Active le lockdown du serveur.</p>
+              <button class="btn btn-ban w-full" onclick="sendAction('lockdown')">🔐 LOCKDOWN</button>
+              <button class="btn btn-secondary w-full mt-2" onclick="sendAction('lockdown_reset')">↩️ RESET LOCKDOWN</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PERMISSIONS -->
+    <div id="page-permissions" class="tab-content">
+      <div class="panel">
+        <div class="panel-header"><h3>🔐 Permissions par salon</h3><div><button class="btn btn-secondary btn-sm" onclick="selectAllCh(true)">Tout</button><button class="btn btn-secondary btn-sm" onclick="selectAllCh(false)">Aucun</button></div></div>
+        <div class="panel-body">
+          <div class="form-group"><label>Rôle cible</label><input type="text" id="permRole" placeholder="@Membre ou ID"></div>
+          <div class="perm-section"><h4>📁 Salons (<span id="selCount">0</span>)</h4><div id="permChannelList" style="max-height:200px;overflow-y:auto;margin-bottom:16px;"><div style="color:var(--text3);padding:20px;text-align:center;">Charge via /site_live</div></div></div>
+          <div class="perm-section"><h4>⚡ Permissions</h4><div class="perm-grid" id="permMatrix">
+            <div class="perm-item" onclick="togglePerm(this,'SEND_MESSAGES')"><span>Écrire</span><div class="perm-toggle"></div></div>
+            <div class="perm-item" onclick="togglePerm(this,'READ_MESSAGES')"><span>Lire</span><div class="perm-toggle"></div></div>
+            <div class="perm-item" onclick="togglePerm(this,'EMBED_LINKS')"><span>Embeds</span><div class="perm-toggle"></div></div>
+            <div class="perm-item" onclick="togglePerm(this,'ATTACH_FILES')"><span>Fichiers</span><div class="perm-toggle"></div></div>
+            <div class="perm-item" onclick="togglePerm(this,'ADD_REACTIONS')"><span>Réactions</span><div class="perm-toggle"></div></div>
+            <div class="perm-item" onclick="togglePerm(this,'USE_COMMANDS')"><span>Commandes</span><div class="perm-toggle"></div></div>
+          </div></div>
+          <button class="btn btn-primary w-full mt-4" onclick="applyPerms()" style="padding:14px;font-size:14px;">🚀 APPLIQUER AUX <span id="applyCount">0</span> SALONS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOGS -->
+    <div id="page-logs" class="tab-content">
+      <div class="panel">
+        <div class="panel-header"><h3>📜 Historique</h3><button class="btn btn-secondary btn-sm" onclick="clearLocalLogs()">🗑️ Vider</button></div>
+        <div class="panel-body" id="logsContainer"><div class="text-center" style="color:var(--text3);padding:40px;">Aucune action</div></div>
+      </div>
+    </div>
+
+    <!-- SECURITY -->
+    <div id="page-security" class="tab-content">
+      <div class="raid-panel">
+        <div class="raid-title">🚨 Anti-Raid & Protection</div>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px;">Active les protections automatiques.</p>
+        <div class="grid-2">
+          <div><div class="form-group"><label>Mode Anti-Raid</label><select id="raidMode"><option value="off">Désactivé</option><option value="low">Faible</option><option value="medium">Moyen</option><option value="high">Élevé</option><option value="extreme">Extrême</option></select></div><button class="btn btn-ban w-full" onclick="sendAction('antiraid')">🛡️ Activer</button></div>
+          <div><div class="form-group"><label>Seuil auto-lockdown</label><select id="raidThreshold"><option value="10">10 joins/min</option><option value="20">20 joins/min</option><option value="50">50 joins/min</option></select></div><button class="btn btn-secondary w-full" onclick="sendAction('raid_reset')">↩️ Reset</button></div>
+        </div>
+      </div>
+      <div class="panel mt-4">
+        <div class="panel-header"><h3>📝 Filtres</h3></div>
+        <div class="panel-body">
+          <div class="perm-grid">
+            <label style="cursor:pointer;"><input type="checkbox"> Filtre de spam</label>
+            <label style="cursor:pointer;"><input type="checkbox"> Filtre d'invites</label>
+            <label style="cursor:pointer;"><input type="checkbox"> Filtre d'invites externes</label>
+          </div>
+          <div class="form-group mt-4"><label>Mots interdits</label><textarea id="badWords" rows="4" placeholder="spam\nraid\ntroll"></textarea></div>
+          <button class="btn btn-primary w-full" onclick="sendAction('filters_update')">💾 Sauvegarder</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MESSAGES -->
+    <div id="page-messages" class="tab-content">
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header"><h3>💬 Envoyer</h3></div>
+          <div class="panel-body">
+            <div class="form-group"><label>Salon</label><input type="text" id="msgChannel" placeholder="#channel ou ID"></div>
+            <div class="form-group"><label>Message</label><textarea id="msgContent" rows="4" placeholder="Ton message..."></textarea></div>
+            <button class="btn btn-primary w-full" onclick="sendMessage()">📤 ENVOYER</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3>📢 Embed</h3></div>
+          <div class="panel-body">
+            <div class="form-group"><label>Titre</label><input type="text" id="embedTitle" placeholder="Titre du message"></div>
+            <div class="form-group"><label>Description</label><textarea id="embedDesc" rows="2" placeholder="Contenu..."></textarea></div>
+            <div class="form-group"><label>Couleur</label><input type="text" id="embedColor" placeholder="5865F2" maxlength="6"></div>
+            <button class="btn btn-primary w-full" onclick="sendEmbed()">📢 ENVOYER</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="tab-content">
+      <div class="panel">
+        <div class="panel-header"><h3>⚙️ Webhook</h3></div>
+        <div class="panel-body">
+          <div class="form-group"><label>Guild ID</label><input type="text" id="settingsGuild" placeholder="ID du serveur" readonly></div>
+          <div class="form-group"><label>Webhook URL</label><input type="password" id="settingsHook" placeholder="https://discordapp.com/api/webhooks/..."></div>
+          <div class="form-group"><label>Token Bot</label><input type="password" id="settingsToken" placeholder="Clé de configuration"></div>
+          <button class="btn btn-primary w-full" onclick="saveSettings()">💾 SAUVEGARDER</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+let state = {
+  name: params.get("name")?decodeURIComponent(params.get("name")):"Serveur",
+  id: params.get("id")||"—", members: parseInt(params.get("members"))||0,
+  webhook: params.get("hook")?decodeURIComponent(params.get("hook")):null,
+  token: params.get("token")||"", structure: [], selectedChannels: new Set(),
+  activePerms: new Set(), logs: [], actionCount: 0
+};
+if(params.get("data")){try{state.structure=JSON.parse(decodeURIComponent(params.get("data")))}catch(e){console.error(e)}}
+
+function init(){
+  document.getElementById("srvName").textContent=state.name;
+  document.getElementById("srvId").textContent="ID: "+state.id;
+  document.getElementById("statMembers").textContent=state.members.toLocaleString();
+  document.getElementById("settingsGuild").value=state.id;
+  if(state.webhook){
+    document.getElementById("hookStatus").className="hook-status ok";
+    document.getElementById("hookText").textContent="Webhook connecté";
+    document.getElementById("settingsHook").value=state.webhook;
+  }
+  renderStructure(); updateStats();
+}
+
+function showPage(pageId,el){
+  document.querySelectorAll(".nav-item").forEach(i=>i.classList.remove("active"));
+  if(el)el.classList.add("active");
+  document.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+  document.getElementById("page-"+pageId).classList.add("active");
+  const titles={dashboard:"📊 Dashboard",moderation:"🛡️ Modération",permissions:"🔐 Permissions",logs:"📜 Logs",security:"🔒 Sécurité",messages:"💬 Messages",settings:"⚙️ Paramètres"};
+  document.getElementById("pageTitle").textContent=titles[pageId]||"";
+}
+
+function switchTab(tabId,el){
+  const parent=el.closest(".tab-content")||document.getElementById("page-moderation");
+  parent.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  el.classList.add("active");
+  parent.querySelectorAll(".tab-content").forEach(c=>c.classList.remove("active"));
+  document.getElementById(tabId).classList.add("active");
+}
+
+function renderStructure(){
+  const container=document.getElementById("structureContainer");
+  if(!state.structure.length){container.innerHTML='<div class="text-center" style="color:var(--text3);padding:40px;">Aucune donnée. Utilise <strong>/site_live</strong>.</div>';return;}
+  let html="",totalCh=0,voiceCh=0;
+  state.structure.forEach((cat,ci)=>{
+    totalCh+=cat.channels?.length||0;
+    voiceCh+=(cat.channels?.filter(c=>c.type==="voice").length||0);
+    html+='<div class="cat-block"><div class="cat-header" onclick="toggleCat(this)"><span class="cat-name">📁 '+escapeHtml(cat.name)+'</span><span class="cat-count"><span class="arrow">▼</span> '+(cat.channels?.length||0)+' salons</span></div><div class="channel-list">'+(cat.channels||[]).map((ch,chi)=>{const icon=ch.type==="voice"?"🔊":ch.type==="stage"?"🎭":ch.type==="forum"?"📋":"💬";const chId='ch-'+ci+'-'+chi;return '<div class="ch-item" id="'+chId+'" onclick="toggleSelectChannel(\''+chId+'\',\''+escapeHtml(ch.name)+'\')"><div class="ch-left"><span class="ch-icon">'+icon+'</span><span class="ch-name">'+escapeHtml(ch.name)+'</span></div><span class="ch-type">'+(ch.type||"text")+'</span></div>';}).join("")+'</div></div>';
+  });
+  container.innerHTML=html;
+  document.getElementById("statChannels").textContent=totalCh;
+  document.getElementById("statCategories").textContent=state.structure.length;
+  renderPermChannels();
+}
+
+function toggleCat(header){const list=header.nextElementSibling;const hidden=list.style.display==="none";list.style.display=hidden?"block":"none";header.classList.toggle("collapsed",!hidden);}
+function expandAll(){document.querySelectorAll(".channel-list").forEach(l=>l.style.display="block");document.querySelectorAll(".cat-header").forEach(h=>h.classList.remove("collapsed"));}
+function escapeHtml(t){const d=document.createElement("div");d.textContent=t;return d.innerHTML;}
+
+function toggleSelectChannel(elId,name){
+  const el=document.getElementById(elId);
+  if(state.selectedChannels.has(name)){state.selectedChannels.delete(name);el.classList.remove("selected");}
+  else{state.selectedChannels.add(name);el.classList.add("selected");}
+  updateSelCount();
+}
+function selectAllCh(select){state.selectedChannels.clear();document.querySelectorAll(".ch-item").forEach(el=>{const name=el.querySelector(".ch-name").textContent;if(select){state.selectedChannels.add(name);el.classList.add("selected");}else{el.classList.remove("selected");}});updateSelCount();}
+function updateSelCount(){const c=state.selectedChannels.size;document.getElementById("selCount").textContent=c;document.getElementById("applyCount").textContent=c;}
+
+function renderPermChannels(){
+  const container=document.getElementById("permChannelList");
+  if(!state.structure.length)return;
+  let html="";
+  state.structure.forEach((cat,ci)=>{
+    html+='<div style="font-size:11px;color:var(--text3);margin:8px 0 4px;font-weight:700;">'+escapeHtml(cat.name)+'</div>';
+    (cat.channels||[]).forEach((ch,chi)=>{const icon=ch.type==="voice"?"🔊":"💬";const chId='perm-ch-'+ci+'-'+chi;html+='<div class="ch-item" id="'+chId+'" onclick="toggleSelectChannel(\''+chId+'\',\''+escapeHtml(ch.name)+'\')" style="padding:6px 10px;margin:2px 0;font-size:12px;"><div class="ch-left"><span class="ch-icon" style="font-size:14px;">'+icon+'</span><span class="ch-name">'+escapeHtml(ch.name)+'</span></div></div>';});
+  });
+  container.innerHTML=html;
+}
+
+function togglePerm(el,perm){el.classList.toggle("active");if(el.classList.contains("active"))state.activePerms.add(perm);else state.activePerms.delete(perm);}
+
+function applyPerms(){
+  if(!state.selectedChannels.size){toast("❌ Aucun salon sélectionné","error");return;}
+  if(!state.activePerms.size){toast("❌ Aucune permission","error");return;}
+  const role=document.getElementById("permRole").value;
+  if(!role){toast("❌ Indique un rôle","error");return;}
+  sendWebhook({action:"set_permissions",role:role,channels:Array.from(state.selectedChannels),perms:Array.from(state.activePerms),author:"Dashboard"},`🔐 Permissions sur ${state.selectedChannels.size} salon(s)`);
+}
+
+function sendMod(type){
+  const targets={warn:{t:"warnTarget",r:"warnReason"},mute:{t:"muteTarget",r:"muteReason",extra:"muteDuration"},unmute:{t:"muteTarget"},kick:{t:"kickTarget",r:"kickReason"},ban:{t:"banTarget",r:"banReason",extra:"banDelete"},prison:{t:"prisonTarget",r:"prisonReason"},unprison:{t:"prisonTarget"}};
+  const cfg=targets[type];
+  const target=document.getElementById(cfg.t)?.value;
+  if(!target){toast("❌ Indique un utilisateur","error");return;}
+  const payload={action:type,target:target,reason:document.getElementById(cfg.r)?.value||"Aucune raison",author:"Dashboard"};
+  if(cfg.extra)payload.extra=document.getElementById(cfg.extra)?.value;
+  sendWebhook(payload,`🛡️ ${type.toUpperCase()} → ${target}`);
+  addLog(type.toUpperCase(),target,payload.reason);
+}
+
+function sendAction(action,extra){
+  const payload={action:action,extra:extra,author:"Dashboard"};
+  sendWebhook(payload,`⚡ ${action}`);
+  addLog(action,"Système",extra);
+}
+
+function sendMessage(){
+  const ch=document.getElementById("msgChannel").value;
+  const txt=document.getElementById("msgContent").value;
+  if(!txt){toast("❌ Message vide","error");return;}
+  sendWebhook({action:"send_message",channel:ch,content:txt},"💬 Message envoyé");
+}
+
+function sendEmbed(){
+  const ch=document.getElementById("msgChannel").value;
+  const title=document.getElementById("embedTitle").value;
+  const desc=document.getElementById("embedDesc").value;
+  const color=document.getElementById("embedColor").value||"5865F2";
+  if(!title||!desc){toast("❌ Titre et description requis","error");return;}
+  sendWebhook({action:"send_embed",channel:ch,title:title,description:desc,color:parseInt(color,16)},"📢 Annonce envoyée");
+}
+
+async function sendWebhook(data,successMsg){
+  const hook=state.webhook||document.getElementById("settingsHook")?.value;
+  if(!hook){toast("❌ Pas de webhook","error");return false;}
+  try{
+    const res=await fetch(hook,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:"Structura Dashboard",avatar_url:"https://cdn.discordapp.com/embed/avatars/0.png",embeds:[{title:"🛡️ Commande Dashboard",color:0x5865f2,fields:[{name:"Action",value:data.action||"N/A",inline:true},{name:"Target",value:data.target||data.channel||"Système",inline:true},{name:"Details",value:JSON.stringify(data).slice(0,1000),inline:false}],timestamp:new Date().toISOString()}]})});
+    if(res.ok){toast("✅ "+successMsg,"success");state.actionCount++;updateStats();return true;}
+    else throw new Error("HTTP "+res.status);
+  }catch(e){toast("❌ Erreur webhook: "+e.message,"error");return false;}
+}
+
+function testWebhook(){sendWebhook({action:"test"},"Webhook OK");}
+function sendPing(){sendWebhook({action:"ping"},"Ping envoyé");}
+
+function addLog(action,target,reason){
+  const now=new Date();
+  const time=now.getHours().toString().padStart(2,'0')+":"+now.getMinutes().toString().padStart(2,'0');
+  state.logs.unshift({time,action,target,reason});
+  renderLogs();
+}
+
+function renderLogs(){
+  const container=document.getElementById("logsContainer");
+  if(!state.logs.length){container.innerHTML='<div class="text-center" style="color:var(--text3);padding:40px;">Aucune action</div>';return;}
+  container.innerHTML=state.logs.slice(0,50).map(l=>`<div class="log-entry ${l.action.toLowerCase()}"><span class="log-time">${l.time}</span><span class="log-action">${l.action}</span><span class="log-target">→ ${l.target}</span><span class="log-reason">${l.reason||''}</span></div>`).join("");
+}
+
+function clearLocalLogs(){state.logs=[];renderLogs();}
+function updateStats(){document.getElementById("statActions").textContent=state.actionCount;}
+
+function saveSettings(){
+  state.webhook=document.getElementById("settingsHook").value;
+  state.token=document.getElementById("settingsToken").value;
+  toast("💾 Paramètres sauvegardés","success");
+}
+
+function toast(text,type){
+  const t=document.createElement("div");t.className="toast "+type;t.textContent=text;
+  document.getElementById("toastContainer").appendChild(t);
+  requestAnimationFrame(()=>t.classList.add("show"));
+  setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),400)},3000);
+}
+
+init();
+document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".nav-item").forEach((n,i)=>{if(i===0)n.click();});});
+</script>
+</body>
+</html>
