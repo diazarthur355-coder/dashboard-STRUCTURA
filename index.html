@@ -629,7 +629,35 @@ function toast(text,type){
   requestAnimationFrame(()=>t.classList.add("show"));
   setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),400)},3000);
 }
-
+<script>
+        // Ce script force la lecture des données envoyées par le bot
+        (function() {
+            const params = new URLSearchParams(window.location.search);
+            const rawData = params.get("data");
+            
+            if (rawData && typeof state !== 'undefined') {
+                try {
+                    // Décodage Base64 (atob) pour transformer les données du bot en texte lisible
+                    const decodedData = atob(rawData.replace(/ /g, "+"));
+                    state.structure = JSON.parse(decodedData);
+                    
+                    // On demande au dashboard de se dessiner avec les nouvelles données
+                    if (typeof renderStructure === 'function') {
+                        renderStructure();
+                    }
+                    
+                    // Mise à jour des compteurs (Membres, Salons, etc.)
+                    if (typeof updateStats === 'function') {
+                        updateStats();
+                    }
+                } catch (e) {
+                    console.error("Erreur lors de l'affichage des données :", e);
+                }
+            }
+        })();
+    </script>
+</body>
+</html>
 init();
 document.addEventListener("keydown",e=>{if(e.key==="Escape")document.querySelectorAll(".nav-item").forEach((n,i)=>{if(i===0)n.click();});});
 </script>
